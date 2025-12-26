@@ -1,11 +1,142 @@
-[
-  {
-    "type": "function",
-    "function": {
-      "name": "search_tools",
-      "description": "Search for available tools (APIs, data sources, automations) using natural language. Returns relevant tools that can help accomplish tasks. Qveris is a tool search + tool execution layer for LLM agents that lets your agent search for live tools using natural language.",
-      "parameters": {
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Qveris API",
+    "description": "Qveris is a tool search + tool execution layer for LLM agents. It lets your agent search for live tools (APIs, data sources, automations) using natural language and execute any discovered tool by passing the required parameters. Qveris works well in agent loops (tool discovery → tool execution → feed results back to the model) and supports multiple integration styles.",
+    "version": "1.0.0",
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://qveris.ai/api/v1",
+      "description": "Qveris API production server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/search": {
+      "post": {
+        "summary": "Search Tools",
+        "description": "Search for available tools (APIs, data sources, automations) using natural language. Returns relevant tools that can help accomplish tasks.",
+        "operationId": "searchTools",
+        "requestBody": {
+          "description": "Search request parameters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful search response with tool results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/execute": {
+      "post": {
+        "summary": "Execute Tool",
+        "description": "Execute a specific remote tool with provided parameters. The tool_id must come from a previous search_tools call. This allows your agent to execute any discovered tool by passing the required parameters.",
+        "operationId": "executeTool",
+        "parameters": [
+          {
+            "name": "tool_id",
+            "in": "query",
+            "description": "The unique identifier of the remote tool to execute. This must be obtained from the results of a previous search_tools call.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Tool execution parameters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful tool execution response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecuteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters or tool execution failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SearchRequest": {
         "type": "object",
+        "required": ["query"],
         "properties": {
           "query": {
             "type": "string",
@@ -22,44 +153,232 @@
             "type": "string",
             "description": "The UUID of the user session. Should be consistent across multiple tool calls in the same session. If not provided, a session ID will be auto-generated. Using the same session_id enables consistent user tracking, better analytics, and improved tool recommendations over time."
           }
-        },
-        "required": ["query"]
-      }
-    }
-  },
-  {
-    "type": "function",
-    "function": {
-      "name": "execute_tool",
-      "description": "Execute a specific remote tool with provided parameters. The tool_id must come from a previous search_tools call. This allows your agent to execute any discovered tool by passing the required parameters. Qveris works well in agent loops (tool discovery → tool execution → feed results back to the model).",
-      "parameters": {
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "search_id": {
+            "type": "string",
+            "description": "Id for this search. Used in following tool executions."
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of results returned"
+          },
+          "results": {
+            "type": "array",
+            "description": "Array of tool information objects",
+            "items": {
+              "$ref": "#/components/schemas/ToolInfo"
+            }
+          },
+          "elapsed_time_ms": {
+            "type": "number",
+            "description": "Total search time in milliseconds"
+          }
+        }
+      },
+      "ToolInfo": {
         "type": "object",
         "properties": {
           "tool_id": {
             "type": "string",
-            "description": "The unique identifier of the remote tool to execute. This must be obtained from the results of a previous search_tools call. Each tool in the search results includes a tool_id field."
+            "description": "Unique identifier for the tool"
           },
+          "name": {
+            "type": "string",
+            "description": "Display name of the tool"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of tool functionality"
+          },
+          "provider_name": {
+            "type": "string",
+            "description": "Name of the tool provider"
+          },
+          "provider_description": {
+            "type": "string",
+            "description": "Description of the provider"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region of the tool. 'global' for global tools, '|' separated whitelist (e.g. 'US|CA') or blacklist (e.g. '-CN|RU') of country codes for regional tools"
+          },
+          "avg_latency_ms": {
+            "type": "number",
+            "description": "Average latency of the tool in milliseconds"
+          },
+          "params": {
+            "type": "array",
+            "description": "Array of parameter definitions",
+            "items": {
+              "$ref": "#/components/schemas/ToolParameter"
+            }
+          },
+          "examples": {
+            "type": "object",
+            "description": "Usage examples",
+            "properties": {
+              "sample_parameters": {
+                "type": "object",
+                "description": "Example parameters for the tool"
+              }
+            }
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ToolStats",
+            "description": "Historical execution performance statistics"
+          }
+        }
+      },
+      "ToolParameter": {
+        "type": "object",
+        "required": ["name", "type", "required", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Parameter name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "array", "object"],
+            "description": "Data type (string, number, boolean, array, object)"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether parameter is required"
+          },
+          "description": {
+            "type": "string",
+            "description": "Parameter description"
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Valid values (if applicable)"
+          }
+        }
+      },
+      "ToolStats": {
+        "type": "object",
+        "properties": {
+          "avg_execution_time_ms": {
+            "type": "number",
+            "description": "Historical average execution time of the tool in milliseconds"
+          },
+          "success_rate": {
+            "type": "number",
+            "description": "Historical success rate of the tool (0.0 to 1.0)"
+          }
+        }
+      },
+      "ExecuteRequest": {
+        "type": "object",
+        "required": ["search_id", "parameters"],
+        "properties": {
           "search_id": {
             "type": "string",
-            "description": "The search_id from the response of the search_tools call that returned the information of this remote tool. This is required to track which search session this tool execution belongs to."
-          },
-          "params_to_tool": {
-            "type": "string",
-            "description": "A JSON stringified dictionary of parameters to pass to the remote tool. Keys are parameter names and values can be of any type (string, number, boolean, object, array). For example: {\"city\": \"London\", \"units\": \"metric\"} or {\"param1\": \"value1\", \"param2\": 42, \"param3\": {\"nestedKey\": \"nestedValue\"}}. The parameters must match the tool's parameter schema from the search results."
+            "description": "Id for the search that returned this tool."
           },
           "session_id": {
             "type": "string",
             "description": "The UUID of the user session. Should be consistent across multiple tool calls in the same session. If not provided, a session ID will be auto-generated. Using the same session_id enables consistent user tracking and better analytics."
           },
+          "parameters": {
+            "type": "object",
+            "description": "Key-value pairs of tool parameters. Value can be object. The parameters must match the tool's parameter schema from the search results.",
+            "additionalProperties": true
+          },
           "max_response_size": {
             "type": "integer",
-            "description": "Maximum response size in bytes. If the tool generates data longer than max_response_size bytes, the response will be truncated to avoid large LLM token costs. The truncated content and a URL to download the full content will be provided. Default is 20480 (20KB). Set to -1 for no limit.",
+            "description": "If the tool generates data longer than max_response_size bytes, truncate to avoid big LLM token cost. -1 means no limit. Default is 20480 (20K).",
             "default": 20480
           }
-        },
-        "required": ["tool_id", "search_id", "params_to_tool"]
+        }
+      },
+      "ExecuteResponse": {
+        "type": "object",
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "description": "Unique execution record ID"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Execution result data (when response is within size limit)",
+                "additionalProperties": true
+              },
+              {
+                "$ref": "#/components/schemas/TruncatedResult",
+                "description": "Truncated result (when response exceeds max_response_size)"
+              }
+            ]
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Whether execution succeeded"
+          },
+          "error_message": {
+            "type": "string",
+            "description": "Error message if execution failed"
+          },
+          "elapsed_time_ms": {
+            "type": "number",
+            "description": "Execution duration in milliseconds"
+          }
+        }
+      },
+      "TruncatedResult": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message to LLM about the truncation"
+          },
+          "truncated_content": {
+            "type": "string",
+            "description": "The initial max_response_size bytes of tool response"
+          },
+          "full_content_file_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The url to the file that contains the full content. Valid for 120min."
+          },
+          "result_size": {
+            "type": "integer",
+            "description": "Size of the full result in bytes"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "message"],
+        "properties": {
+          "error": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Bearer token authentication. Get your API key from https://qveris.ai"
       }
     }
   }
-]
-
+}
