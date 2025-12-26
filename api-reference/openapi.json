@@ -1,217 +1,65 @@
-{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
-    "version": "1.0.0"
-  },
-  "servers": [
-    {
-      "url": "http://sandbox.mintlify.com"
-    }
-  ],
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
-  "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
-        "requestBody": {
-          "description": "Plant to add to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of plant to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "search_tools",
+      "description": "Search for available tools (APIs, data sources, automations) using natural language. Returns relevant tools that can help accomplish tasks. Qveris is a tool search + tool execution layer for LLM agents that lets your agent search for live tools using natural language.",
+      "parameters": {
         "type": "object",
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "query": {
+            "type": "string",
+            "description": "Natural language search query describing the general capability of the tool you need. Describe what the tool should do, not the specific parameters you want to pass to the tool later. For example: 'weather forecast API', 'send email notification', 'currency conversion'."
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
-          }
-        }
-      },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
-          },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          }
-        ]
-      },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
-        "type": "object",
-        "properties": {
-          "error": {
+          "limit": {
             "type": "integer",
-            "format": "int32"
+            "description": "Maximum number of results to return. Default is 20.",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
           },
-          "message": {
-            "type": "string"
+          "session_id": {
+            "type": "string",
+            "description": "The UUID of the user session. Should be consistent across multiple tool calls in the same session. If not provided, a session ID will be auto-generated. Using the same session_id enables consistent user tracking, better analytics, and improved tool recommendations over time."
           }
-        }
+        },
+        "required": ["query"]
       }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "execute_tool",
+      "description": "Execute a specific remote tool with provided parameters. The tool_id must come from a previous search_tools call. This allows your agent to execute any discovered tool by passing the required parameters. Qveris works well in agent loops (tool discovery → tool execution → feed results back to the model).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "description": "The unique identifier of the remote tool to execute. This must be obtained from the results of a previous search_tools call. Each tool in the search results includes a tool_id field."
+          },
+          "search_id": {
+            "type": "string",
+            "description": "The search_id from the response of the search_tools call that returned the information of this remote tool. This is required to track which search session this tool execution belongs to."
+          },
+          "params_to_tool": {
+            "type": "string",
+            "description": "A JSON stringified dictionary of parameters to pass to the remote tool. Keys are parameter names and values can be of any type (string, number, boolean, object, array). For example: {\"city\": \"London\", \"units\": \"metric\"} or {\"param1\": \"value1\", \"param2\": 42, \"param3\": {\"nestedKey\": \"nestedValue\"}}. The parameters must match the tool's parameter schema from the search results."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "The UUID of the user session. Should be consistent across multiple tool calls in the same session. If not provided, a session ID will be auto-generated. Using the same session_id enables consistent user tracking and better analytics."
+          },
+          "max_response_size": {
+            "type": "integer",
+            "description": "Maximum response size in bytes. If the tool generates data longer than max_response_size bytes, the response will be truncated to avoid large LLM token costs. The truncated content and a URL to download the full content will be provided. Default is 20480 (20KB). Set to -1 for no limit.",
+            "default": 20480
+          }
+        },
+        "required": ["tool_id", "search_id", "params_to_tool"]
       }
     }
   }
-}
+]
+
