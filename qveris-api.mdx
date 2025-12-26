@@ -1,0 +1,97 @@
+---
+title: "Qveris Api"
+---
+
+# 触发更新
+
+\> 为你的文档项目排队一次部署更新。返回一个状态 ID，用于跟踪更新进度。更新将从你配置的部署用分支触发。
+
+## OpenAPI
+
+\`\`\`\`yaml zh/openapi.json post /project/update/{projectId}
+
+openapi: 3.0.1
+
+info:
+
+  title: Mintlify External API
+
+  description: 用于管理 Mintlify 文档并访问各类资源的 API。
+
+  version: 1.0.0
+
+servers:
+
+  - url: https://api.mintlify.com/v1
+
+security:
+
+  - bearerAuth: []
+
+paths:
+
+  /project/update/{projectId}:
+
+    post:
+
+      summary: 触发更新
+
+      description: 为你的文档项目排队一次部署更新。返回一个状态 ID，用于跟踪更新进度。更新将从你配置的部署用分支触发。
+
+      parameters:
+
+        - name: projectId
+
+          in: path
+
+          description: \>-
+
+            项目 ID。可在控制台的 [API
+
+            keys](https://dashboard.mintlify.com/settings/organization/api-keys)
+
+            页面中复制。
+
+          required: true
+
+          schema:
+
+            type: string
+
+      responses:
+
+        '202':
+
+          description: 成功响应
+
+          content:
+
+            application/json:
+
+              schema:
+
+                type: object
+
+                properties:
+
+                  statusId:
+
+                    type: string
+
+                    description: 已触发的更新的状态 ID。
+
+components:
+
+  securitySchemes:
+
+    bearerAuth:
+
+      type: http
+
+      scheme: bearer
+
+\`\`\`\`
+
+---
+
+\> To find navigation and other pages in this documentation, fetch the llms.txt file at: https://mintlify.com/docs/llms.txt
